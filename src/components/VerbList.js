@@ -59,6 +59,7 @@ export default function VerbList(props) {
             </Dialog>
 
             <h2>Verbs to Practice</h2>
+            <br/>
             <Button variant="outlined" onClick={handleClickOpen} startIcon={<AddIcon />}>
                 Add Verbs to List
 
@@ -69,7 +70,7 @@ export default function VerbList(props) {
             <Box sx={{ p: 2, border: '1px solid grey', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
                 {verbList !== null ? (
                     verbList.map((verb, index) => {
-                        return <Chip key={index} label={verb} onDelete={() => removeVerb(index)} />;
+                        return <Chip key={index} label={verb} onDelete={() => removeVerb(verb)} />;
                     })
                 ) : <div></div>}
 

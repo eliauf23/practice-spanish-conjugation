@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AnswerInput from './components/AnswerInput';
 import MultipleSelect from './components/MultipleSelect';
 import VerbList from './components/VerbList';
+import Prompt from './components/Prompt';
 const MOODS = ['indicative', 'subjunctive', 'imperative'];
 const TENSES = ['present', 'imperfect', 'preterite'];
 const SUBJECTS = ['yo', 'tu', 'el', 'ella', 'usted', 'nosotros', 'nosotras', 'vosotros', 'vosotras', 'ellos', 'ellas', 'ustedes'];
@@ -58,10 +59,35 @@ function App() {
 
   const [selectedMoods, setselectedMoods] = useState([]);
   const [selectedTenses, setselectedTenses] = useState([]);
-
   const initVerbList = ["hablar", "comer", "vivir", "ser", "haber", "estar", "tener", "poder", "ir", "ver", "dar"]
   const [verbList, setVerbList] = useState(initVerbList);
-  //add verb to verbList
+  const initVerb = verbList[Math.floor(Math.random() * verbList.length)];
+  const initMood = 'indicative';
+  const initTense = 'present';
+  const initSubject = 'yo';
+  const [verb, setVerb] = useState(initVerb);
+  const [answer, setAnswer] = useState('');
+  const [conjugation, setConjugation] = useState('');
+  const [mood, setMood] = useState(initMood);
+  const [tense, setTense] = useState(initTense);
+  const [subject, setSubject] = useState(initSubject);
+  const [subjectConversion, setSubjectConversion] = useState(initSubject);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (conjugation === '') {
+        let response = await getData(verb, mood, tense, subjectConversion);
+        if (response.conjugation !== "error") {
+          setConjugation(response.conjugation);
+        } else {
+          alert("error");
+        }
+      }
+    }
+    fetchData();
+
+  }, []);
+
   const addVerb = (verb) => {
     setVerbList([...verbList, verb]);
   };
@@ -71,42 +97,50 @@ function App() {
     const newVerbList = verbList.filter((v) => v !== verb);
     setVerbList(newVerbList);
   };
-  
-  const [verb, setVerb] = useState('hablar');
-  const [answer, setAnswer] = useState('');
-  const [conjugation, setConjugation] = useState('hablo');
-  const [mood, setMood] = useState('indicative');
-  const [tense, setTense] = useState('present');
-  const [subject, setSubject] = useState('yo');
-  const [subjectConversion, setSubjectConversion] = useState('yo');
+
+
+
 
 
   const getConjugation = async () => {
-    setMood(MOODS[Math.floor(Math.random() * MOODS.length)]);
+    let tempVerb, tempMood, tempTense, tempSubject, tempSubjectConversion = null;
+    tempVerb = verbList[Math.floor(Math.random() * verbList.length)];
+    tempMood = selectedMoods[Math.floor(Math.random() * selectedMoods.length)];
     if (mood === 'imperative') {
-      setTense(IMPERATIVE_OPTS[Math.floor(Math.random() * IMPERATIVE_OPTS.length)]);
-      setSubject(IMPERATIVE_SUBJECTS[Math.floor(Math.random() * IMPERATIVE_SUBJECTS.length)]);
+      tempTense = IMPERATIVE_OPTS[Math.floor(Math.random() * IMPERATIVE_OPTS.length)];
+      tempSubject = IMPERATIVE_SUBJECTS[Math.floor(Math.random() * IMPERATIVE_SUBJECTS.length)];
     } else if (mood === 'subjunctive') {
-      setTense('present');
-      setSubject(SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)]);
+      tempTense = 'present';
+      tempSubject = SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
     }
     else {
-      setTense(TENSES[Math.floor(Math.random() * TENSES.length)]);
-      setSubject(SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)]);
-    }
-    setSubjectConversion(subjectMap[subject]);
-
-    //get the data from the API with fetch
-    let response = await getData(verb, mood, tense, subjectConversion);
-    if (response.conjugation) {
-      setConjugation(response.conjugation);
-
-    } else {
+      tempTense = selectedTenses[Math.floor(Math.random() * selectedTenses.length)];
+      tempSubject = SUBJECTS[Math.floor(Math.random() * SUBJECTS.length)];
 
     }
+
+    tempSubjectConversion = subjectMap[tempSubject];
+    if (tempVerb && tempMood && tempTense && tempSubject && tempSubjectConversion) {
+      setVerb(tempVerb);
+      setMood(tempMood);
+      setTense(tempTense);
+      setSubject(tempSubject);
+      setSubjectConversion(tempSubjectConversion);
+      //get the data from the API with fetch
+      let response = await getData(verb, mood, tense, subjectConversion);
+      if (response.conjugation !== "error") {
+        setConjugation(response.conjugation);
+      } else alert("error")
+    }
+
+
+
 
   };
 
+  const getNextVerb = async () => {
+    await getConjugation();
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -128,14 +162,22 @@ function App() {
 
   }
   return (
- <React.Fragment>
-     <MultipleSelect label={"Moods"} items={MOODS} selectedItems={selectedMoods} setSelectedItems={setselectedMoods}/>
-     <MultipleSelect label={"Tenses"} items={TENSES} selectedItems={selectedTenses} setSelectedItems={setselectedTenses}/>
-      <VerbList  verbList={verbList} setVerbList={setVerbList} addVerb={addVerb} removeVerb={removeVerb}/>
-      
-      <AnswerInput answer={answer} setAnswer={setAnswer} correctAnswer={conjugation}/>
+    <React.Fragment>
+      <MultipleSelect label={"Moods"} items={MOODS} selectedItems={selectedMoods} setSelectedItems={setselectedMoods} />
+      <MultipleSelect label={"Tenses"} items={TENSES} selectedItems={selectedTenses} setSelectedItems={setselectedTenses} />
 
- </React.Fragment>
+      {selectedMoods !== null && selectedTenses !== null ? (
+        <>
+          <VerbList verbList={verbList} setVerbList={setVerbList} addVerb={addVerb} removeVerb={removeVerb} />
+          <Prompt verb={verb} mood={mood} tense={tense} subject={subject} getNextVerb={getNextVerb} />
+          <br />
+          <AnswerInput answer={answer} setAnswer={setAnswer} correctAnswer={conjugation} />
+        </>
+
+      ) : (<div>Select tenses and moods</div>)}
+
+
+    </React.Fragment>
 
 
     // <div>
@@ -176,3 +218,4 @@ function App() {
 }
 
 export default App;
+
